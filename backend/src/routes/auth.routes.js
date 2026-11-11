@@ -21,11 +21,12 @@ const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replac
 const backendUrl = (process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '')
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${backendUrl}/api/auth/google/callback`
 const googleEnabled = Boolean(googleClientId && googleClientSecret)
+const useSecureCookies = process.env.NODE_ENV === 'production' || backendUrl.startsWith('https://')
 const cookieName = 'auth_token'
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  secure: useSecureCookies,
+  sameSite: useSecureCookies ? 'none' : 'lax',
   path: '/',
 }
 const googleClient = new OAuth2Client(googleClientId, googleClientSecret, googleRedirectUri)
