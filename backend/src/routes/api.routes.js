@@ -487,7 +487,7 @@ const createPayPalOrder = async (invoice) => {
     body: JSON.stringify({
       intent: 'CAPTURE',
       purchase_units: [{
-        invoice_id: invoice.invoiceNumber,
+        invoice_id: `${invoice.invoiceNumber.slice(0, 110)}-${randomBytes(8).toString('hex')}`,
         custom_id: invoice._id.toString(),
         description: invoice.title.slice(0, 127),
         amount: { currency_code: invoice.currency, value: invoice.totalAmount.toFixed(2) },
@@ -567,7 +567,21 @@ const capturePayment = async (payment, orderId) => {
     })
     const captureResponse = await response.json()
     const capture = captureResponse.purchase_units?.[0]?.payments?.captures?.[0]
-    if (!response.ok || capture?.status !== 'COMPLETED') throw new Error(captureResponse.message || 'PayPal capture was not completed.')
+    if (!response.ok || capture?.status !== 'COMPLETED') {
+      const issues = captureResponse.details?.map((detail) => detail.issue).filter(Boolean) || []
+      const debugId = captureResponse.debug_id
+      console.error('PayPal capture failed:', JSON.stringify({
+        httpStatus: response.status,
+        debugId,
+        issues,
+      }))
+      const errorParts = [
+        captureResponse.message || 'PayPal capture was not completed.',
+        issues.length ? `PayPal issue: ${issues.join(', ')}` : '',
+        debugId ? `Debug ID: ${debugId}` : '',
+      ].filter(Boolean)
+      throw Object.assign(new Error(errorParts.join(' ')), { status: 502 })
+    }
     const capturedAmount = Number(capture.amount?.value)
     if (capture.amount?.currency_code !== payment.currency || capturedAmount !== payment.amount) {
       throw Object.assign(new Error('Captured amount or currency does not match the invoice.'), { status: 409 })
