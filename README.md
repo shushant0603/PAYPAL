@@ -1,6 +1,6 @@
 # GlobalFreelance
 
-GlobalFreelance is a full-stack freelance workspace with a React/Vite frontend and an Express/MongoDB backend. It includes account authentication, Google sign-in, client/project/invoice workspace features, AI invoice drafting, and PayPal payments.
+GlobalFreelance is a full-stack freelance workspace with a React/Vite frontend and an Express/MongoDB backend. It includes email/password authentication, client/project/invoice workspace features, AI invoice drafting, and PayPal payments.
 
 ## Requirements
 
@@ -22,21 +22,9 @@ Edit `backend/.env` and set the values for the services you want to use:
 
 - `MONGODB_URI`: MongoDB connection string.
 - `JWT_SECRET`: a long, random secret used to sign login sessions.
-- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: credentials for Google sign-in.
 - `GROQ_API_KEY`: required for AI invoice drafting.
 - `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`: PayPal sandbox credentials for local testing.
 - `PAYPAL_WEBHOOK_ID`: PayPal webhook ID if webhook verification is used.
-
-For Google sign-in on localhost, set `GOOGLE_REDIRECT_URI` to:
-
-```text
-http://localhost:3000/api/auth/google/callback
-```
-
-In the Google OAuth client settings, add these values:
-
-- Authorized JavaScript origin: `http://localhost:5173`
-- Authorized redirect URI: `http://localhost:3000/api/auth/google/callback`
 
 Start the backend:
 
@@ -90,7 +78,6 @@ Set environment variables in your hosting provider rather than committing `.env`
 
 - Frontend: set `VITE_API_BASE_URL` to the backend API base URL, including `/api` (for example, `https://api.example.com/api`).
 - Backend: set `PORT`, `FRONTEND_URL` to the deployed frontend origin, and `BACKEND_URL` to the deployed backend origin.
-- Google OAuth: use the deployed frontend origin as the authorized JavaScript origin and `${BACKEND_URL}/api/auth/google/callback` as the authorized redirect URI. Set `GOOGLE_REDIRECT_URI` to that exact same redirect URI.
 - Use HTTPS for deployed services and configure production credentials in the hosting provider's secret manager.
 
 ## Repository layout

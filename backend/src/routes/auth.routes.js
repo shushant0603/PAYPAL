@@ -1,26 +1,18 @@
-import { randomBytes, timingSafeEqual } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import cookieParser from 'cookie-parser'
 import express from 'express'
-import { OAuth2Client } from 'google-auth-library'
 import jwt from 'jsonwebtoken'
 import {
   createPasswordUser,
   findUserByEmail,
   findUserById,
   getWorkspaceForUser,
-  upsertGoogleUser,
   isDatabaseConnected,
 } from '../utilis/db.js'
 
 const router = express.Router()
 const jwtSecret = process.env.JWT_SECRET
-const googleClientId = process.env.GOOGLE_CLIENT_ID
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
-const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
 const backendUrl = (process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '')
-const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${backendUrl}/api/auth/google/callback`
-const googleEnabled = Boolean(googleClientId && googleClientSecret)
 const useSecureCookies = process.env.NODE_ENV === 'production' || backendUrl.startsWith('https://')
 const cookieName = 'auth_token'
 const cookieOptions = {
@@ -29,8 +21,6 @@ const cookieOptions = {
   sameSite: useSecureCookies ? 'none' : 'lax',
   path: '/',
 }
-const googleClient = new OAuth2Client(googleClientId, googleClientSecret, googleRedirectUri)
-
 router.use(cookieParser())
 
 const safeUser = (user) => ({
@@ -41,7 +31,6 @@ const safeUser = (user) => ({
   phone: user.phone,
   country: user.country,
   currency: user.currency,
-  authProvider: user.authProvider,
   isEmailVerified: user.isEmailVerified,
   createdAt: user.createdAt,
 })
@@ -77,10 +66,6 @@ export const requireAuth = async (req, res, next) => {
     res.status(401).json({ error: 'Please sign in again.' })
   }
 }
-
-router.get('/config', (req, res) => {
-  res.json({ googleEnabled: googleEnabled && isDatabaseConnected() })
-})
 
 router.use((req, res, next) => {
   if (!isDatabaseConnected()) {
@@ -143,67 +128,5 @@ router.post('/logout', (req, res) => {
   res.clearCookie(cookieName, cookieOptions)
   res.status(204).end()
 })
-
-router.get('/google', (req, res) => {
-  if (!googleEnabled) {
-    return res.status(503).json({ error: 'Google sign-in is not configured on the backend.' })
-  }
-
-  const state = randomBytes(32).toString('hex')
-  res.cookie('google_oauth_state', state, {
-    ...cookieOptions,
-    path: '/api/auth/google/callback',
-    maxAge: 10 * 60 * 1000,
-  })
-  res.redirect(googleClient.generateAuthUrl({
-    access_type: 'online',
-    prompt: 'select_account',
-    scope: ['openid', 'email', 'profile'],
-    state,
-  }))
-})
-
-router.get('/google/callback', async (req, res) => {
-  const expectedState = req.cookies?.google_oauth_state
-  const receivedState = typeof req.query.state === 'string' ? req.query.state : ''
-  res.clearCookie('google_oauth_state', { ...cookieOptions, path: '/api/auth/google/callback' })
-
-  const stateMatches = expectedState && receivedState && expectedState.length === receivedState.length
-    && timingSafeEqual(Buffer.from(expectedState), Buffer.from(receivedState))
-  if (!stateMatches || typeof req.query.code !== 'string') {
-    return res.redirect(`${frontendUrl}/login?authError=google`)
-  }
-  if (!googleEnabled || !requireJwtSecretForRedirect()) {
-    return res.redirect(`${frontendUrl}/login?authError=google`)
-  }
-
-  try {
-    const { tokens } = await googleClient.getToken(req.query.code)
-    if (!tokens.id_token) throw new Error('Google did not return an ID token.')
-
-    const ticket = await googleClient.verifyIdToken({ idToken: tokens.id_token, audience: googleClientId })
-    const profile = ticket.getPayload()
-    if (!profile?.sub || !profile.email || profile.email_verified !== true) {
-      throw new Error('Google account email is not verified.')
-    }
-
-    const user = await upsertGoogleUser({
-      email: profile.email.toLowerCase(),
-      name: profile.name || profile.email,
-      googleSub: profile.sub,
-      avatar: profile.picture || '',
-    })
-    await getWorkspaceForUser(user)
-    setSession(res, user)
-    res.redirect(`${frontendUrl}/login?auth=success`)
-  } catch (error) {
-    console.error('Google sign-in failed:', error.message)
-    res.redirect(`${frontendUrl}/login?authError=google`)
-  }
-})
-
-function requireJwtSecretForRedirect() {
-  return Boolean(jwtSecret)
-}
 
 export default router

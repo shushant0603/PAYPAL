@@ -18,16 +18,7 @@ export const findUserByEmail = (email, includePasswordHash = false) => {
 export const findUserById = (id) => User.findById(id)
 
 export const createPasswordUser = ({ email, name, passwordHash }) =>
-  User.create({ email, name, passwordHash, authProvider: 'password' })
-
-export const upsertGoogleUser = async ({ email, name, googleSub, avatar = '' }) => {
-  const user = await User.findOneAndUpdate(
-    { email },
-    { $set: { name, googleSub, avatar, authProvider: 'google', isEmailVerified: true } },
-    { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true },
-  )
-  return user
-}
+  User.create({ email, name, passwordHash })
 
 export const getWorkspaceForUser = (user) => Workspace.findOneAndUpdate(
   { ownerId: user._id },

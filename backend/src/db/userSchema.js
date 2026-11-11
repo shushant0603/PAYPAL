@@ -10,9 +10,7 @@ const userSchema = new Schema({
   phone: { type: String, default: '', maxlength: 40 },
   country: { type: String, default: '', maxlength: 100 },
   currency: { type: String, default: 'USD', uppercase: true, minlength: 3, maxlength: 3 },
-  authProvider: { type: String, enum: ['password', 'google'], default: 'password' },
   isEmailVerified: { type: Boolean, default: false },
-  googleSub: { type: String, unique: true, sparse: true },
 }, { timestamps: true })
 
 const workspaceSchema = new Schema({

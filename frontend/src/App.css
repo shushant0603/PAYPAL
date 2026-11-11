@@ -280,14 +280,12 @@
 
 .auth-form input:focus-visible,
 .auth-button:focus-visible,
-.google-button:focus-visible,
 .auth-link:focus-visible {
   outline: 2px solid #176a4c;
   outline-offset: 2px;
 }
 
-.auth-button,
-.google-button {
+.auth-button {
   display: flex;
   min-height: 44px;
   align-items: center;
@@ -308,40 +306,6 @@
 .auth-button:disabled {
   cursor: wait;
   opacity: 0.65;
-}
-
-.auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 20px 0;
-  color: #65756b;
-  font-size: 13px;
-}
-
-.auth-divider::before,
-.auth-divider::after {
-  height: 1px;
-  flex: 1;
-  background: #dce5df;
-  content: '';
-}
-
-.google-button {
-  gap: 10px;
-  border: 1px solid #b8c8be;
-  background: #fff;
-  color: #263b30;
-}
-
-.google-logo {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-}
-
-.google-button[aria-disabled='true'] {
-  opacity: 0.55;
 }
 
 .auth-footer {
